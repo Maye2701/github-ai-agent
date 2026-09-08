@@ -1,0 +1,12 @@
+{
+  "name": "github-ai-agent",
+  "version": "1.0.0",
+  "description": "Agente IA que mediante MCP server automatiza herramientas de GitHub.",
+  "license": "MIT",
+  "author": "Mayerly Morales",
+  "type": "module",
+  "main": "build/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
