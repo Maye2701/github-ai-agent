@@ -1,2 +1,21 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { registrarSaludar } from "./tools/saludar.js";
+
+
+
 const serverName: string = "github-ai-agent";
-console.error(`Prueba funcionamiento: ${serverName}`);
+const server = new McpServer({
+    name: serverName,
+    version: "1.0.0"
+});
+
+registrarSaludar(server);
+
+const transport = new StdioServerTransport();
+
+await server.connect(transport);
+
+
+
+
