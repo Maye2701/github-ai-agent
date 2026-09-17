@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { listarRepositorios } from "../src/github/operations.js";
 import { githubClient } from "../src/github/client.js";
+import { crearRepositorio } from "../src/github/operations.js"
 
 vi.mock("../src/github/client.js", () => {
     return {
@@ -14,13 +15,55 @@ vi.mock("../src/github/client.js", () => {
                             html_url: "https://github.com/usuario-prueba/repo-test"
                         }
                     ]
-                })
+                }),
+
+                createForAuthenticatedUser: vi.fn().mockResolvedValue({
+                    data:
+                    {
+                        name: "repo-prueba"
+                    }
+                }),
+
+
             }
+
         }
     }
 
-
 });
+
+describe("crearRepositorio", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it("omite la descripción cuando no se proporciona", async () => {
+        const respuesta = await crearRepositorio({ name: "repo-prueba" });
+        expect(githubClient.repos.createForAuthenticatedUser).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.createForAuthenticatedUser).toHaveBeenCalledWith(
+            {
+                name: "repo-prueba"
+            }
+        )
+        expect(respuesta).toEqual({ name: "repo-prueba" });
+
+    });
+
+    it("enviar la descripcion cuando se proporciona", async () => {
+        const respuesta = await crearRepositorio({ name: "repo-prueba", description: "descripcion de prueba" });
+        expect(githubClient.repos.createForAuthenticatedUser).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.createForAuthenticatedUser).toHaveBeenCalledWith(
+            {
+                name: "repo-prueba",
+                description: "descripcion de prueba"
+            }
+        )
+
+        expect(respuesta).toEqual({ name: "repo-prueba" });
+    })
+})
+
+
 
 describe("listarRepositorios", () => {
     beforeEach(() => {
@@ -61,4 +104,5 @@ describe("listarRepositorios", () => {
 
     });
 })
+
 
