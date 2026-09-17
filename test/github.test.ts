@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { listarRepositorios } from "../src/github/operations.js";
 import { githubClient } from "../src/github/client.js";
 import { crearRepositorio } from "../src/github/operations.js"
+import { crearIssue } from "../src/github/operations.js";
+
 
 vi.mock("../src/github/client.js", () => {
     return {
@@ -24,6 +26,17 @@ vi.mock("../src/github/client.js", () => {
                     }
                 }),
 
+            },
+
+            issues: {
+                create: vi.fn().mockResolvedValue({
+                    data: {
+                        number: 1,
+                        title: "Revisar documentacion",
+
+
+                    }
+                })
 
             }
 
@@ -31,6 +44,44 @@ vi.mock("../src/github/client.js", () => {
     }
 
 });
+
+
+describe("crearIssue", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    })
+    it("crea una issue sin body", async () => {
+        const respuesta = await crearIssue({ owner: "usuario-prueba", repo: "repo-prueba", title: "Revisar documentacion" });
+        expect(githubClient.issues.create).toHaveBeenCalledTimes(1);
+        expect(githubClient.issues.create).toHaveBeenCalledWith(
+            {
+                owner: "usuario-prueba",
+                repo: "repo-prueba",
+                title: "Revisar documentacion"
+            }
+        )
+
+        expect(respuesta).toEqual({ number: 1, title: "Revisar documentacion" });
+    })
+
+    it("envia el body cuando se proporciona", async () => {
+        const respuesta = await crearIssue({ owner: "usuario-prueba", repo: "repo-prueba", title: "Revisar documentacion", body: "Agregar instrucciones de instalacion" });
+        expect(githubClient.issues.create).toHaveBeenCalledTimes(1);
+        expect(githubClient.issues.create).toHaveBeenCalledWith(
+            {
+                owner: "usuario-prueba",
+                repo: "repo-prueba",
+                title: "Revisar documentacion",
+                body: "Agregar instrucciones de instalacion"
+            }
+        )
+
+        expect(respuesta).toEqual({ number: 1, title: "Revisar documentacion" });
+    })
+});
+
+
+
 
 describe("crearRepositorio", () => {
     beforeEach(() => {
@@ -62,6 +113,7 @@ describe("crearRepositorio", () => {
         expect(respuesta).toEqual({ name: "repo-prueba" });
     })
 })
+
 
 
 
@@ -103,6 +155,7 @@ describe("listarRepositorios", () => {
         expect(githubClient.repos.listForAuthenticatedUser).toHaveBeenCalledTimes(1);
 
     });
-})
 
+
+})
 

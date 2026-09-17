@@ -18,7 +18,7 @@ export function registrarCrearRepositorio(server: McpServer) {
                 nombre: repositorio.full_name,
                 descripcion: repositorio.description,
                 url: repositorio.html_url
-            }
+            };
 
             return {
                 content: [{
@@ -28,5 +28,5 @@ export function registrarCrearRepositorio(server: McpServer) {
             }
 
         }
-    )
+    );
 };
