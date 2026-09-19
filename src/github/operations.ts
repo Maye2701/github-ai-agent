@@ -1,13 +1,13 @@
 import { githubClient } from "./client.js";
 import type { CreateRepositoryInput } from "../schemas/create-repositories.schema.js";
 import type { CreateIssueInput } from "../schemas/create-issues.schema.js";
+import type { ListIssuesInput } from "../schemas/list-issues.schema.js";
 
 export async function listarRepositorios() {
     const response = await githubClient.repos.listForAuthenticatedUser();
     return response.data;
 
 }
-
 
 
 export async function crearRepositorio(datos: CreateRepositoryInput) {
@@ -22,7 +22,6 @@ export async function crearRepositorio(datos: CreateRepositoryInput) {
 
     return response.data;
 }
-
 
 
 export async function crearIssue(datos: CreateIssueInput) {
@@ -40,6 +39,25 @@ export async function crearIssue(datos: CreateIssueInput) {
 
     return response.data;
 }
+
+
+export async function listarIssues(datos: ListIssuesInput) {
+
+    const response = await githubClient.issues.listForRepo({
+        owner: datos.owner,
+        repo: datos.repo,
+        state: "open"
+    }
+    )
+    return response.data.filter((issue) => issue.pull_request === undefined);
+
+
+};
+
+
+
+
+
 
 
 

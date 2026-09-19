@@ -4,6 +4,7 @@ import { registrarSaludar } from "./tools/saludar.js";
 import { registrarListarRepositorios } from "./tools/list-repositories.js";
 import { registrarCrearRepositorio } from "./tools/create-repositories.js"
 import { registrarCrearIssue } from "./tools/create-issue.js";
+import { registrarListarIssues } from "./tools/list-issues.js";
 
 
 const serverName: string = "github-ai-agent";
@@ -16,6 +17,7 @@ registrarSaludar(server);
 registrarListarRepositorios(server);
 registrarCrearRepositorio(server);
 registrarCrearIssue(server);
+registrarListarIssues(server);
 
 const transport = new StdioServerTransport();
 

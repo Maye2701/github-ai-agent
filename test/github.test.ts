@@ -3,7 +3,7 @@ import { listarRepositorios } from "../src/github/operations.js";
 import { githubClient } from "../src/github/client.js";
 import { crearRepositorio } from "../src/github/operations.js"
 import { crearIssue } from "../src/github/operations.js";
-
+import { listarIssues } from "../src/github/operations.js";
 
 vi.mock("../src/github/client.js", () => {
     return {
@@ -33,17 +33,53 @@ vi.mock("../src/github/client.js", () => {
                     data: {
                         number: 1,
                         title: "Revisar documentacion",
-
-
                     }
-                })
+                }),
 
+                listForRepo: vi.fn().mockResolvedValue({
+                    data: [
+                        {
+                            number: 1,
+                            title: "Revisar documentacion"
+                        },
+                        {
+                            number: 2,
+                            title: " Actualizar README.md",
+                            pull_request: {}
+                        }
+                    ]
+                })
             }
 
         }
     }
 
 });
+
+
+describe("listarIssues", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    })
+
+    it("lista issues abiertos y excluye pull request", async () => {
+        const respuesta = await listarIssues({ owner: "usuario-prueba", repo: "repo-prueba" });
+        expect(githubClient.issues.listForRepo).toHaveBeenCalledTimes(1);
+        expect(githubClient.issues.listForRepo).toHaveBeenCalledWith(
+
+            {
+                owner: "usuario-prueba",
+                repo: "repo-prueba",
+                state: "open"
+            }
+        )
+        expect(respuesta).toEqual([
+            { number: 1, title: "Revisar documentacion" }
+        ])
+    })
+})
+
+
 
 
 describe("crearIssue", () => {
@@ -158,4 +194,6 @@ describe("listarRepositorios", () => {
 
 
 })
+
+
 
