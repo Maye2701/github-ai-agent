@@ -2,6 +2,9 @@ import { githubClient } from "./client.js";
 import type { CreateRepositoryInput } from "../schemas/create-repositories.schema.js";
 import type { CreateIssueInput } from "../schemas/create-issues.schema.js";
 import type { ListIssuesInput } from "../schemas/list-issues.schema.js";
+import type { CreateCommitInput } from "../schemas/create-commit.schema.js"
+
+
 
 export async function listarRepositorios() {
     const response = await githubClient.repos.listForAuthenticatedUser();
@@ -53,6 +56,33 @@ export async function listarIssues(datos: ListIssuesInput) {
 
 
 };
+
+export async function createCommit(datos: CreateCommitInput) {
+
+    const contenidoBase64 = Buffer.from(datos.content, "utf8").toString("base64");
+
+    const parametros: {
+        owner: string;
+        repo: string;
+        path: string;
+        message: string;
+        content: string;
+        sha?: string;
+    } = {
+        owner: datos.owner,
+        repo: datos.repo,
+        path: datos.path,
+        message: datos.message,
+        content: contenidoBase64,
+    };
+
+    if (datos.sha !== undefined) {
+        parametros.sha = datos.sha;
+    }
+
+    const response = await githubClient.repos.createOrUpdateFileContents(parametros);
+    return response.data;
+}
 
 
 

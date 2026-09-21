@@ -4,6 +4,7 @@ import { githubClient } from "../src/github/client.js";
 import { crearRepositorio } from "../src/github/operations.js"
 import { crearIssue } from "../src/github/operations.js";
 import { listarIssues } from "../src/github/operations.js";
+import { createCommit } from "../src/github/operations.js";
 
 vi.mock("../src/github/client.js", () => {
     return {
@@ -25,6 +26,18 @@ vi.mock("../src/github/client.js", () => {
                         name: "repo-prueba"
                     }
                 }),
+
+                createOrUpdateFileContents: vi.fn().mockResolvedValue({
+                    data: {
+                        content: {
+                            path: "notas.txt",
+                            sha: "sha-archivo-prueba"
+                        },
+                        commit: {
+                            sha: "sha-commit-prueba"
+                        }
+                    }
+                })
 
             },
 
@@ -56,6 +69,59 @@ vi.mock("../src/github/client.js", () => {
 
 });
 
+describe("crearCommit", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    })
+    it("codifica el contenido y crea un archivo sin sha", async () => {
+        const respuesta = await createCommit({ owner: "usuario-prueba", repo: "repo-prueba", message: "commit de prueba", path: "notas.txt", content: "Hola" })
+
+        expect(githubClient.repos.createOrUpdateFileContents).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.createOrUpdateFileContents).toHaveBeenCalledWith(
+            {
+                owner: "usuario-prueba",
+                repo: "repo-prueba",
+                message: "commit de prueba",
+                path: "notas.txt",
+                content: "SG9sYQ=="
+            }
+        )
+        expect(respuesta).toEqual({
+            content: {
+                path: "notas.txt",
+                sha: "sha-archivo-prueba"
+            },
+            commit: {
+                sha: "sha-commit-prueba"
+            }
+        })
+    })
+
+    it("Envia el sha del archivo al actualizarlo", async () => {
+        const respuesta = await createCommit({ owner: "usuario-prueba", repo: "repo-prueba", message: "commit de prueba", path: "notas.txt", content: "Hola", sha: "sha-archivo-anterior" });
+
+        expect(githubClient.repos.createOrUpdateFileContents).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.createOrUpdateFileContents).toHaveBeenCalledWith(
+            {
+                owner: "usuario-prueba",
+                repo: "repo-prueba",
+                message: "commit de prueba",
+                path: "notas.txt",
+                content: "SG9sYQ==",
+                sha: "sha-archivo-anterior"
+            }
+        )
+        expect(respuesta).toEqual({
+            content: {
+                path: "notas.txt",
+                sha: "sha-archivo-prueba"
+            },
+            commit: {
+                sha: "sha-commit-prueba"
+            }
+        })
+    })
+});
 
 describe("listarIssues", () => {
     beforeEach(() => {
@@ -77,6 +143,7 @@ describe("listarIssues", () => {
             { number: 1, title: "Revisar documentacion" }
         ])
     })
+
 })
 
 
@@ -99,6 +166,7 @@ describe("crearIssue", () => {
 
         expect(respuesta).toEqual({ number: 1, title: "Revisar documentacion" });
     })
+
 
     it("envia el body cuando se proporciona", async () => {
         const respuesta = await crearIssue({ owner: "usuario-prueba", repo: "repo-prueba", title: "Revisar documentacion", body: "Agregar instrucciones de instalacion" });
@@ -194,6 +262,3 @@ describe("listarRepositorios", () => {
 
 
 })
-
-
-
