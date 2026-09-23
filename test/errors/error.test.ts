@@ -153,6 +153,17 @@ describe("NetworkError", () => {
         const resultado = clasificarError(error);
         expect(resultado).toBeInstanceOf(NetworkError);
     })
+
+    it("reconoce un error de red anidado con status", () => {
+        const error = {
+            status: 500,
+            cause: {
+                cause: { code: "ECONNRESET" }
+            }
+        };
+        const resultado = clasificarError(error);
+        expect(resultado).toBeInstanceOf(NetworkError);
+    })
 })
 
 

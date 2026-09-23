@@ -4,6 +4,8 @@ import { crearIssue } from "../github/operations.js";
 import { clasificarError } from "../errors/index.js";
 import { registrarError } from "../utils/logging.js";
 
+
+
 export function registrarCrearIssue(server: McpServer) {
     server.registerTool(
         "create_issue",
@@ -32,6 +34,7 @@ export async function createIssueHandler(datos: CreateIssueInput) {
             }]
         }
     } catch (error) {
+
         registrarError("create_issue", error);
         const errorClasificado = clasificarError(error);
         return {

@@ -42,6 +42,17 @@ export function clasificarError(error: unknown, profundidad = 0): Error {
     if (error instanceof GitHubAPIError || error instanceof AuthenticationError || error instanceof ValidationError || error instanceof NetworkError) {
         return error
     }
+
+    if (profundidad < 3 &&
+        typeof error === "object" &&
+        error !== null &&
+        "cause" in error) {
+        const causaClasificada = clasificarError(error.cause, profundidad + 1);
+        if (causaClasificada instanceof NetworkError) {
+            return causaClasificada
+        }
+    }
+
     if (typeof error === "object" && error !== null && "status" in error) {
         if (error.status === 401) {
             return new AuthenticationError("GitHub rechazó la autenticación. Revisa que GITHUB_TOKEN sea válido y no haya caducado.");
@@ -88,17 +99,6 @@ export function clasificarError(error: unknown, profundidad = 0): Error {
         }
         if (error.code === "ENOTFOUND") {
             return new NetworkError("No se pudo encontrar el host de GitHub. Comprueba tu conexión a Internet o la dirección del servidor.");
-        }
-    }
-
-
-    if (profundidad < 3 &&
-        typeof error === "object" &&
-        error !== null &&
-        "cause" in error) {
-        const causaClasificada = clasificarError(error.cause, profundidad + 1);
-        if (causaClasificada instanceof NetworkError) {
-            return causaClasificada
         }
     }
 
