@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { registrarSaludar } from "./tools/saludar.js";
 import { registrarListarRepositorios } from "./tools/list-repositories.js";
 import { registrarCrearRepositorio } from "./tools/create-repositories.js"
 import { registrarCrearIssue } from "./tools/create-issue.js";
@@ -14,7 +13,6 @@ const server = new McpServer({
     version: "1.0.0"
 });
 
-registrarSaludar(server);
 registrarListarRepositorios(server);
 registrarCrearRepositorio(server);
 registrarCrearIssue(server);

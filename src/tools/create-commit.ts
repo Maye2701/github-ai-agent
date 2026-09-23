@@ -1,7 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createCommitSchema } from "../schemas/create-commit.schema.js";
+import { createCommitSchema, type CreateCommitInput } from "../schemas/create-commit.schema.js";
 import { createCommit } from "../github/operations.js";
-
+import { clasificarError } from "../errors/index.js";
+import { registrarError } from "../utils/logging.js";
 
 export function registrarCrearCommit(server: McpServer) {
     server.registerTool(
@@ -11,23 +12,38 @@ export function registrarCrearCommit(server: McpServer) {
             inputSchema: createCommitSchema,
 
         },
+        createCommitHandler
 
-        async (datos) => {
-
-            const commit = await createCommit(datos);
-            const resumen = {
-                ruta: commit.content?.path,
-                shaArchivo: commit.content?.sha,
-                shaCommit: commit.commit?.sha
-            };
-
-            return {
-                content: [{
-                    type: "text",
-                    text: JSON.stringify(resumen)
-                }]
-            }
-
-        }
-    );
+    )
 };
+
+export async function createCommitHandler(datos: CreateCommitInput) {
+    try {
+        const commit = await createCommit(datos);
+        const resumen = {
+            ruta: commit.content?.path,
+            shaArchivo: commit.content?.sha,
+            shaCommit: commit.commit?.sha
+        };
+
+        return {
+            content: [{
+                type: "text" as const,
+                text: JSON.stringify(resumen)
+            }]
+        }
+
+    } catch (error) {
+        registrarError("create_commit", error);
+        const errorClasificado = clasificarError(error);
+        return {
+            isError: true,
+            content: [
+                {
+                    type: "text" as const,
+                    text: errorClasificado.message
+                }
+            ]
+        }
+    }
+}
