@@ -11,7 +11,7 @@ vi.mock("../../src/github/client.js", () => {
     return {
         githubClient: {
             repos: {
-                listForAuthenticatedUser: vi.fn().mockResolvedValue({
+                listForUser: vi.fn().mockResolvedValue({
                     data: [
                         {
                             full_name: "usuario-prueba/repo-test",
@@ -128,6 +128,8 @@ describe("crearCommit", () => {
         })
     })
 });
+
+
 
 describe("listarIssues", () => {
     beforeEach(() => {
@@ -247,17 +249,27 @@ describe("listarRepositorios", () => {
         vi.clearAllMocks();
     });
     // 1. Test para verificar que se llama a la API de GitHub
-    // Verifica que llama a la API de GitHub para listar repositorios
+    // Verifica que llama a la API de GitHub para listar los repositorios de un usuario
 
     it("llama a la API de GitHub para listar repositorios", async () => {
-        await listarRepositorios();
-        expect(githubClient.repos.listForAuthenticatedUser).toHaveBeenCalledTimes(1);
+        await listarRepositorios({ owner: "usuario-prueba" });
+        expect(githubClient.repos.listForUser).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.listForUser).toHaveBeenCalledWith(
+            { username: "usuario-prueba" }
+        );
+    });
+
+    it("envía la página cuando se proporciona", async () => {
+        await listarRepositorios({ owner: "usuario-prueba", page: 2 });
+        expect(githubClient.repos.listForUser).toHaveBeenCalledWith(
+            { username: "usuario-prueba", page: 2 }
+        );
     });
     // 2. Test para verificar el formato de los datos devueltos
     // Verifica que devuelve los respositorios recibidos de GitHub
 
     it("devuelve los respositorios recibidos de GitHub", async () => {
-        const repositorios = await listarRepositorios();
+        const repositorios = await listarRepositorios({ owner: "usuario-prueba" });
         expect(repositorios).toEqual([
             {
                 full_name: "usuario-prueba/repo-test",
@@ -271,19 +283,19 @@ describe("listarRepositorios", () => {
     // Verifica que devuelve una lista vacía si GitHub no devuelve repositorios
 
     it("devuelve una lista vacía si GitHub no devuelve repositorios", async () => {
-        vi.mocked(githubClient.repos.listForAuthenticatedUser).mockResolvedValueOnce({
+        vi.mocked(githubClient.repos.listForUser).mockResolvedValueOnce({
             data: [],
             status: 200,
             headers: {},
-            url: 'https://api.github.com/user/repos?per_page=100&page=1'
+            url: 'https://api.github.com/users/usuario-prueba/repos?page=1'
         }
         );
 
 
 
-        const repositorios = await listarRepositorios();
+        const repositorios = await listarRepositorios({ owner: "usuario-prueba" });
         expect(repositorios).toEqual([]);
-        expect(githubClient.repos.listForAuthenticatedUser).toHaveBeenCalledTimes(1);
+        expect(githubClient.repos.listForUser).toHaveBeenCalledTimes(1);
 
     });
 

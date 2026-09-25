@@ -161,7 +161,7 @@ La primera ejecución puede pedir autorización para instalar Inspector. Abre la
 
 1. Selecciona `list_repositories`.
 2. Activa **Edit as JSON**.
-3. Envía `{"page":1,"per_page":2}`.
+3. Envía `{"owner":"TU_USUARIO","page":1}`.
 4. Revisa **Results**.
 
 Inspector inicia su propio proceso del servidor: no necesitas ejecutarlo por separado. Tras modificar código, recompila y reinicia la conexión. Mantén Inspector local y no compartas sus enlaces de sesión.
@@ -196,7 +196,7 @@ Si Refresh no recarga el código, cierra y vuelve a abrir Antigravity. Reiniciar
 
 Primera prueba:
 
-> Ejecuta list_repositories con {"page":1,"per_page":5}. Muestra nombres y enlaces. No crees ni modifiques nada.
+> Ejecuta list_repositories con {"owner":"TU_USUARIO","page":1}. Muestra nombres y enlaces. No crees ni modifiques nada.
 
 Revisa la tarjeta de ejecución y sus argumentos antes de seleccionar **Yes, allow this time**. Una explicación del modelo o la lectura de la descripción de una tool no prueban por sí solas su ejecución.
 
@@ -208,27 +208,20 @@ Los resultados se entregan como texto JSON en `content`; los errores del handler
 
 ### list_repositories
 
-Lista **una página** de repositorios accesibles al usuario autenticado, no necesariamente solo los propios. Acepta `{}`.
+Lista los repositorios de un usuario u organización (`owner`), página por página. Requiere el propietario; la página es opcional (de 1 a 100).
 
 | Parámetro | Tipo | Requerido | Regla |
 |---|---|---|---|
-| `page` | integer | No | Mayor que 0 |
-| `per_page` | integer | No | Entre 1 y 100 |
-| `type` | string | No | `all`, `owner`, `public`, `private`, `member` |
-| `visibility` | string | No | `all`, `public`, `private` |
-| `sort` | string | No | `created`, `updated`, `pushed`, `full_name` |
-| `direction` | string | No | `asc`, `desc` |
-| `affiliation` | string[] | No | Arreglo no vacío de `owner`, `collaborator`, `organization_member` |
-
-No combines `type` con `visibility` ni con `affiliation`. Sí puedes combinar `visibility` y `affiliation` sin `type`. Los parámetros omitidos conservan los valores predeterminados de GitHub. La afiliación se convierte internamente en una cadena separada por comas.
+| `owner` | string | Sí | Propietario no vacío tras trim |
+| `page` | integer | No | Entero entre 1 y 100 |
 
 ```json
-{"page":1,"per_page":5,"sort":"updated","direction":"desc"}
+{"owner":"TU_USUARIO","page":1}
 ```
 
 Respuesta: arreglo con `nombre`, `descripcion` y `url`. La descripción puede ser `null`.
 
-> Usa list_repositories para mostrar cinco repositorios accesibles ordenados por actualización descendente. No modifiques nada.
+> Usa list_repositories para mostrar los repositorios de TU_USUARIO, página 1. No modifiques nada.
 
 ### create_repository
 
@@ -364,27 +357,25 @@ La ausencia de token es un error de arranque. Algunos schemas todavía utilizan 
 
 ### Política de reintentos
 
-`conReintentos` se aplica **solo a list_repositories y list_issues**:
+`createOctokit()` registra un hook de petición que aplica `conReintentos` solo a las peticiones **GET**. Las escrituras (POST, PUT, DELETE) se envían una sola vez: reintentarlas podría duplicar una creación en GitHub. Las operaciones no añaden otro envoltorio de reintentos.
 
 - Máximo tres intentos: llamada inicial y dos reintentos.
-- Red reconocida: espera de 1 segundo y después 2 segundos.
-- 403/429 con `retry-after` numérico válido: espera lo indicado, mínimo 1 segundo.
-- Sin `retry-after`, con `x-ratelimit-remaining` igual a cero y `x-ratelimit-reset` válido: calcula la espera hasta esa fecha, mínimo 1 segundo.
-- Si la espera supera 10 segundos o no es finita: devuelve el error, sin acortarla para reintentar antes de tiempo.
-- Sin información válida de espera: no reintenta automáticamente el rate limit.
-- No reintenta un 401 ni un 403 sin señal reconocida de rate limit.
-- Un estado 5xx por sí solo no activa reintentos de red.
+- Estados reintentables: 429, 500, 502, 503 y 504.
+- Esperas: 500 ms antes del segundo intento y 1000 ms antes del tercero.
+- No reintenta 401, 403, 404, 422 ni otros estados fuera de la lista.
+- Un error sin estado HTTP numérico reconocido no se reintenta.
+- Esta política académica no interpreta `retry-after` ni `x-ratelimit-reset`.
 
-Los 10 segundos son por espera, **no un timeout global de la petición HTTP**. No hay limitador interno de solicitudes ni cuotas propias.
+No hay timeout global configurado, limitador interno de solicitudes ni cuotas propias. En un uso de producción, la espera fija puede ser insuficiente para el rate limit.
 
-Las escrituras no usan este ayudante. El modelo puede, sin embargo, volver a invocar una tool: no hay claves de idempotencia ni una barrera contra esa decisión. Comprueba el estado en GitHub antes de repetir escrituras.
+**Por qué solo lecturas:** una petición de escritura puede haberse completado aunque falle su respuesta; reintentar podría duplicar la creación. Como el hook no reintenta escrituras, ante un fallo de creación conviene comprobar el estado en GitHub antes de repetir manualmente.
 
 ### Logs
 
-Los handlers registran errores como JSON mediante `console.error` (**stderr**): fecha, nivel, nombre fijo de tool, categoría y estado cuando es un `GitHubAPIError`. No registran token, cabeceras, contenido de archivos ni el error completo.
+El logger centralizado de `src/utils/logging.ts` escribe mediante `console.error` (**stderr**): fecha, nivel, mensaje y datos JSON opcionales. Los handlers usan INFO al recibir solicitudes, los reintentos usan WARN y `registrarError` usa ERROR con categoría y estado cuando corresponde. El error original completo no se registra. El ocultamiento de formatos habituales de tokens es una protección adicional, no un filtro universal de secretos.
 
-```json
-{"fecha":"2026-09-23T12:00:00.000Z","nivel":"error","tool":"list_issues","categoria":"GitHubAPIError","status":404}
+```text
+2026-09-25T12:00:00.000Z [ERROR] Falló la ejecución de una herramienta {"tool":"list_issues","categoria":"GitHubAPIError","status":404}
 ```
 
 **stdout queda reservado para MCP.** No añadas `console.log` de depuración. dotenv utiliza `quiet: true`.
@@ -397,7 +388,7 @@ npm run build
 npx vitest run test/utils/retry.test.ts
 ```
 
-Verificación realizada al preparar este README: **89 tests pasando en 14 archivos de pruebas**. Repite los comandos después de modificar el código para verificar tu checkout actual.
+Ejecuta estos comandos después de modificar el código para verificar tu checkout actual. Las pruebas del cliente utilizan respuestas HTTP simuladas y no crean recursos en GitHub.
 
 - **Schemas:** entradas válidas, campos vacíos, límites y combinaciones incompatibles.
 - **Operaciones:** cliente mockeado con `vi.mock`, argumentos y resultados.
@@ -458,7 +449,7 @@ Git ignora `build/`, `node_modules/`, `.env`, `coverage/` y `*.log`. Vitest usa 
 | 404 | Propietario, nombre y acceso al recurso |
 | 409 al actualizar | Estado del repositorio y SHA actual del archivo |
 | 422 | Campos, restricciones y recursos ya existentes |
-| 429 o espera automática rechazada | Espera lo indicado; no repitas inmediatamente |
+| 429 | La política actual solo hace dos reintentos con espera fija; si persiste, no repitas inmediatamente |
 | “GitHub tuvo un problema interno…” | Estado y causas de red; no prueba una caída de GitHub |
 | Inspector funciona y Antigravity falla | Compara comando, argumentos, proceso y entorno |
 | “Our servers are experiencing high traffic…” | Puede ser del host/modelo; verifica si hubo llamada MCP |

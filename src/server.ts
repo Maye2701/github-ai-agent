@@ -13,6 +13,7 @@ const server = new McpServer({
     version: "1.0.0"
 });
 
+
 registrarListarRepositorios(server);
 registrarCrearRepositorio(server);
 registrarCrearIssue(server);

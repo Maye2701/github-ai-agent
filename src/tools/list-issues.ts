@@ -2,13 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { listIssuesSchema, type ListIssuesInput } from "../schemas/list-issues.schema.js";
 import { listarIssues } from "../github/operations.js";
 import { clasificarError } from "../errors/index.js"
-import { registrarError } from "../utils/logging.js"
+import { logger, registrarError } from "../utils/logging.js";
 
 export function registrarListarIssues(server: McpServer) {
     server.registerTool(
         "list_issues",
         {
-            description: "Lista una página de issues abiertos del repositorio indicado, excluyendo pull requests ",
+            description: "Lista una página de issues abiertos del repositorio indicado por propietario y nombre. Excluye pull requests. Úsala para consultar tareas pendientes; no modifica nada.",
             inputSchema: listIssuesSchema,
 
         },
@@ -17,6 +17,9 @@ export function registrarListarIssues(server: McpServer) {
 };
 
 export async function listarIssuesHandler(datos: ListIssuesInput) {
+    logger.info("solicitud recibida", {
+        tool: "list_issues",
+    });
     try {
         const issues = await listarIssues(datos);
         const resumen = issues.map(issue => {

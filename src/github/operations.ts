@@ -4,40 +4,19 @@ import type { CreateIssueInput } from "../schemas/create-issues.schema.js";
 import type { ListIssuesInput } from "../schemas/list-issues.schema.js";
 import type { CreateCommitInput } from "../schemas/create-commit.schema.js";
 import type { ListRepositoriesInput } from "../schemas/list-repositories.schema.js";
-import { conReintentos } from "../utils/retry.js";
 
 
-export async function listarRepositorios(datos: ListRepositoriesInput = {}) {
-
-    const parametros: Parameters<typeof githubClient.repos.listForAuthenticatedUser>[0] = {};
+export async function listarRepositorios(datos: ListRepositoriesInput) {
+    const parametros: Parameters<typeof githubClient.repos.listForUser>[0] = {
+        username: datos.owner,
+    };
 
     if (datos.page !== undefined) {
         parametros.page = datos.page;
     }
-    if (datos.per_page !== undefined) {
-        parametros.per_page = datos.per_page;
-    }
-    if (datos.type !== undefined) {
-        parametros.type = datos.type;
-    }
-    if (datos.visibility !== undefined) {
-        parametros.visibility = datos.visibility;
-    }
-    if (datos.sort !== undefined) {
-        parametros.sort = datos.sort;
-    }
-    if (datos.direction !== undefined) {
-        parametros.direction = datos.direction;
-    }
-    if (datos.affiliation !== undefined) {
-        parametros.affiliation = datos.affiliation.join(",");
-    }
 
-    const response = await conReintentos(
-        () => githubClient.repos.listForAuthenticatedUser(parametros)
-    );
+    const response = await githubClient.repos.listForUser(parametros);
     return response.data;
-
 }
 
 
@@ -75,12 +54,12 @@ export async function crearIssue(datos: CreateIssueInput) {
 
 export async function listarIssues(datos: ListIssuesInput) {
 
-    const response = await conReintentos(() => githubClient.issues.listForRepo({
+    const response = await githubClient.issues.listForRepo({
         owner: datos.owner,
         repo: datos.repo,
         state: "open"
     }
-    ));
+    );
 
     return response.data.filter((issue) => issue.pull_request === undefined);
 };

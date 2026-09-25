@@ -6,7 +6,7 @@ vi.mock("../../src/github/client.js", () => {
     return {
         githubClient: {
             repos: {
-                listForAuthenticatedUser: vi.fn().mockResolvedValue({
+                listForUser: vi.fn().mockResolvedValue({
                     data: [
                         {
                             full_name: "usuario-prueba/repo-prueba",
@@ -35,8 +35,10 @@ describe("listarRepositoriosHandler", () => {
 
 
     it("devuelve el listado de repositorios del usuario", async () => {
-        const resultado = await listarRepositoriosHandler({});
-        expect(githubClient.repos.listForAuthenticatedUser).toHaveBeenCalled();
+        const resultado = await listarRepositoriosHandler({ owner: "usuario-prueba" });
+        expect(githubClient.repos.listForUser).toHaveBeenCalledWith(
+            { username: "usuario-prueba" }
+        );
         expect(resultado.isError).toBeUndefined();
         expect(resultado.content).toEqual([
             {
@@ -61,8 +63,8 @@ describe("listarRepositoriosHandler", () => {
 
 
     it("devuelve un mensaje claro cuando GitHub responde 404", async () => {
-        vi.mocked(githubClient.repos.listForAuthenticatedUser).mockRejectedValueOnce({ status: 404 });
-        const resultado = await listarRepositoriosHandler({});
+        vi.mocked(githubClient.repos.listForUser).mockRejectedValueOnce({ status: 404 });
+        const resultado = await listarRepositoriosHandler({ owner: "usuario-prueba" });
         expect(resultado.isError).toBe(true);
         expect(resultado.content).toEqual([
             {
@@ -76,8 +78,8 @@ describe("listarRepositoriosHandler", () => {
 
 
     it("devuelve un mensaje claro cuando GitHub responde 401", async () => {
-        vi.mocked(githubClient.repos.listForAuthenticatedUser).mockRejectedValueOnce({ status: 401 });
-        const resultado = await listarRepositoriosHandler({});
+        vi.mocked(githubClient.repos.listForUser).mockRejectedValueOnce({ status: 401 });
+        const resultado = await listarRepositoriosHandler({ owner: "usuario-prueba" });
         expect(resultado.isError).toBe(true);
         expect(resultado.content).toEqual([
             {
@@ -91,10 +93,10 @@ describe("listarRepositoriosHandler", () => {
 
 
     it("no expone el mensaje original de un error desconocido", async () => {
-        vi.mocked(githubClient.repos.listForAuthenticatedUser).mockRejectedValueOnce(
+        vi.mocked(githubClient.repos.listForUser).mockRejectedValueOnce(
             new Error("Token ficticio: SECRETO_DE_PRUEBA")
         );
-        const resultado = await listarRepositoriosHandler({});
+        const resultado = await listarRepositoriosHandler({ owner: "usuario-prueba" });
         expect(resultado.isError).toBe(true);
         expect(resultado.content).toEqual([
             {

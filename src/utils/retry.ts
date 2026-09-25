@@ -1,119 +1,63 @@
-import { clasificarError, NetworkError } from "../errors/index.js";
+import { logger } from "./logging.js";
 
-
+const MAX_INTENTOS = 3;
+const ESPERA_INICIAL_MS = 500;
+const ESTADOS_TRANSITORIOS = [429, 500, 502, 503, 504];
 
 export function esperar(ms: number): Promise<void> {
-    return new Promise<void>((resolve => {
+    return new Promise<void>((resolve) => {
         setTimeout(resolve, ms);
-    }));
+    });
 }
 
-export function obtenerEsperaRateLimit(error: unknown): number | undefined {
-    if (typeof error !== "object" || error === null) {
-        return undefined;
-
-    } if (!("status" in error) ||
-        (error.status !== 429 && error.status !== 403)) {
-        return undefined;
-
-    } if (!("response" in error)) {
-        return undefined;
-    }
-    const response = error.response;
-    if (typeof response !== "object" || response === null) {
-        return undefined;
-    }
-    if (!("headers" in response)) {
-        return undefined;
-    }
-
-    const headers = response.headers;
-    if (typeof headers !== "object" || headers === null) {
-        return undefined;
-    }
-
-
-    if ("retry-after" in headers) {
-
-        const valor = headers["retry-after"];
-        if (typeof valor !== "string" && typeof valor !== "number") {
-            return undefined;
-
-        } if (typeof valor === "string" && valor.trim() === "") {
-            return undefined;
-        }
-
-
-        const segundos = Number(valor);
-        if (!Number.isFinite(segundos) || segundos < 0) {
-            return undefined;
-        }
-
-        return Math.max(1000, segundos * 1000);
-    }
-
+function obtenerStatus(error: unknown): number | undefined {
     if (
-        "x-ratelimit-remaining" in headers &&
-        "x-ratelimit-reset" in headers
+        typeof error !== "object" ||
+        error === null ||
+        !("status" in error) ||
+        typeof error.status !== "number"
     ) {
-        const restantes = headers["x-ratelimit-remaining"];
-
-        if (restantes !== "0" && restantes !== 0) {
-            return undefined;
-        }
-
-        const reset = headers["x-ratelimit-reset"];
-        if (typeof reset !== "string" && typeof reset !== "number") {
-            return undefined;
-        }
-
-        if (typeof reset === "string" && reset.trim() === "") {
-            return undefined;
-        }
-
-        const segundosReset = Number(reset);
-        if (!Number.isFinite(segundosReset) || segundosReset < 0) {
-            return undefined;
-        }
-
-        return Math.max(1000, segundosReset * 1000 - Date.now());
+        return undefined;
     }
 
-
-    return undefined;
+    return error.status;
 }
-
-
-
 
 export async function conReintentos<T>(
-    operacion: () => Promise<T>
+    operacion: () => Promise<T>,
+    etiqueta = "operacion"
 ): Promise<T> {
-
-    for (let intento = 1; intento <= 3; intento++) {
+    for (let intento = 1; intento <= MAX_INTENTOS; intento++) {
         try {
             return await operacion();
         } catch (error) {
-            const errorClasificado = clasificarError(error);
-            const esperaRateLimit = obtenerEsperaRateLimit(error);
+            const status = obtenerStatus(error);
 
-            if (esperaRateLimit !== undefined && intento < 3) {
-                if (!Number.isFinite(esperaRateLimit) || esperaRateLimit > 10_000) {
-                    throw error;
-                }
-                await esperar(esperaRateLimit);
-                continue;
+            if (
+                status === undefined ||
+                !ESTADOS_TRANSITORIOS.includes(status)
+            ) {
+                throw error;
             }
 
-            if (errorClasificado instanceof NetworkError && intento < 3) {
-                await esperar(1000 * (2 ** (intento - 1)));
-                continue;
+            if (intento === MAX_INTENTOS) {
+                // registrarError, en el handler, registra el fallo final.
+                throw error;
             }
-            throw error;
+
+            const esperaMs = ESPERA_INICIAL_MS * (2 ** (intento - 1));
+
+            logger.warn("Se reintentará la operación", {
+                operacion: etiqueta,
+                status,
+                intentoFallido: intento,
+                siguienteIntento: intento + 1,
+                esperaMs
+            });
+
+            await esperar(esperaMs);
         }
     }
+
     throw new Error("No se pudo completar la operación");
-
 }
-
-
