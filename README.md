@@ -399,7 +399,6 @@ Ejecuta estos comandos después de modificar el código para verificar tu checko
 - **Errores:** categorías, estados y causas anidadas.
 - **Reintentos:** reloj simulado, límites y cabeceras.
 - **Logs:** ausencia de un secreto ficticio.
-- **MCP:** registro de las cinco tools, serialización del inputSchema y validación en español, con transporte en memoria (`InMemoryTransport`) sin usar la API.
 
 Los tests usan mocks: no requieren un token real ni deberían crear recursos. Los logs stderr en tests de errores son esperados; revisa el resumen passed/failed.
 
@@ -428,8 +427,7 @@ github-ai-agent/
 │   ├── handlers/
 │   ├── github/
 │   ├── errors/
-│   ├── utils/
-│   └── integration/
+│   └── utils/
 ├── .env.example
 ├── .gitignore
 ├── package.json
