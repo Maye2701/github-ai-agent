@@ -9,6 +9,7 @@ export const createRepositorySchema = z.object({
     description: z.string().trim().optional()
         .describe("Descripción corta del repositorio (opcional)"),
 })
+    .strict()
     .describe("Crea un repositorio público nuevo en la cuenta del usuario autenticado");
 
 export type CreateRepositoryInput = z.infer<typeof createRepositorySchema>;

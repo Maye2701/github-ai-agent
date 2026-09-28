@@ -6,6 +6,7 @@ export const listIssuesSchema = z.object({
     repo: z.string().trim().min(1, "El nombre del repo no puede estar vacio")
         .describe("Nombre del repositorio sin el propietario"),
 })
+    .strict()
     .describe("Parámetros para listar los issues abiertos de un repositorio");
 
 export type ListIssuesInput = z.infer<typeof listIssuesSchema>;

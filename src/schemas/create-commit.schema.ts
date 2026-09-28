@@ -14,6 +14,7 @@ export const createCommitSchema = z.object({
     sha: z.string().trim().optional()
         .describe("SHA actual del archivo. Solo es necesario al actualizar un archivo existente; no debe ser el SHA del commit"),
 })
+    .strict()
     .describe("Crea o reemplaza un archivo de texto en la rama predeterminada mediante un commit");
 
 export type CreateCommitInput = z.infer<typeof createCommitSchema>;

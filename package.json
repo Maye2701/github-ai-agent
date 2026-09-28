@@ -9,6 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "build": "tsc",
+    "start": "node build/server.js",
     "dev": "tsx watch src/server.ts",
     "inspector": "npx @modelcontextprotocol/inspector node --env-file=.env build/server.js"
   },

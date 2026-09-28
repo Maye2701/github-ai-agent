@@ -10,6 +10,7 @@ export const createIssueSchema = z.object({
     body: z.string().trim().optional()
         .describe("Detalle o descripción del issue (opcional)"),
 })
+    .strict()
     .describe("Abre un issue nuevo en el repositorio indicado");
 
 export type CreateIssueInput = z.infer<typeof createIssueSchema>;
