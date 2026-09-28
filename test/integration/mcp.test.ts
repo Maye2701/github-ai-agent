@@ -21,7 +21,7 @@ function textoDeResultado(content: Array<{ type: string; text?: string }>): stri
 beforeAll(async () => {
     // El cliente real exige GITHUB_TOKEN al importarse; aquí no se usa la API.
     process.env.GITHUB_TOKEN = "token-ficticio-solo-para-tests";
-    const { crearServidor } = await import("../../src/mcp-server.js");
+    const { crearServidor } = await import("../../src/server.js");
 
     const [transporteCliente, transporteServidor] = InMemoryTransport.createLinkedPair();
 

@@ -413,7 +413,6 @@ Las pruebas manuales de Inspector y Antigravity sí usan la API y pueden modific
 github-ai-agent/
 ├── src/
 │   ├── server.ts
-│   ├── mcp-server.ts
 │   ├── schemas/
 │   ├── tools/
 │   ├── github/
