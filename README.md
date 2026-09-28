@@ -142,10 +142,11 @@ El servidor compilado queda en `build/server.js`.
 |---|---|
 | `npm run build` | Compila `src` con TypeScript |
 | `npm test` | Ejecuta Vitest |
+| `npm start` | Inicia el servidor compilado por stdio (`node build/server.js`) |
 | `npm run dev` | Ejecuta `src/server.ts` con `tsx watch` |
 | `node build/server.js` | Inicia el servidor compilado por stdio |
 
-No hay scripts `start` ni `lint`. `noEmitOnError` impide emitir archivos nuevos si la compilación falla; no elimina un `build` anterior.
+No hay script `lint`. `noEmitOnError` impide emitir archivos nuevos si la compilación falla; no elimina un `build` anterior.
 
 Que el servidor espere sin imprimir texto es normal: necesita un cliente MCP. Puedes detenerlo con `Ctrl+C`. Para el host usa Node directamente, no el modo watch.
 
@@ -343,17 +344,19 @@ Usa el último `shaArchivo` si nadie modificó el archivo después. Si desconoce
 | 401 | `AuthenticationError` |
 | 403, 404, 409, 429 | `GitHubAPIError`, con mensaje específico |
 | 422 | `ValidationError` |
-| 500–599 sin causa de red reconocida | `GitHubAPIError` con mensaje genérico |
+| 500–599 sin causa de red ni timeout reconocidos | `GitHubAPIError` con mensaje genérico |
 | `ECONNRESET`, `ETIMEDOUT`, `ENOTFOUND` | `NetworkError` |
-| Desconocido | `Error` con “Ocurrió un error inesperado” |
+| `UND_ERR_CONNECT_TIMEOUT`, `UND_ERR_HEADERS_TIMEOUT`, `UND_ERR_BODY_TIMEOUT` | `NetworkError` |
+| Mensaje con `Connect Timeout` o `Timeout Error` | `NetworkError` |
+| Desconocido | `Error` con "Ocurrió un error inesperado" |
 
-Las causas se revisan hasta tres enlaces de `cause`, antes del estado HTTP. Esto permite detectar códigos de red reconocidos que Octokit puede envolver con estado 500. No todos los 500 prueban un fallo remoto ni todos los fallos de conexión están cubiertos por esos tres códigos.
+Las causas se revisan hasta tres enlaces de `cause`, antes del estado HTTP. Esto permite detectar códigos de red reconocidos —incluidos los de undici (`UND_ERR_*`)— que Octokit puede envolver con estado 500 y mensajes `Connect Timeout Error`. Un fallo al *establecer* la conexión significa que la petición nunca llegó a GitHub y puede repetirse; un fallo posterior exige verificar primero el estado. No todos los 500 prueban un fallo remoto.
 
 Ejemplo de 404:
 
 > No se encontró el recurso solicitado en GitHub. Verifica el propietario, el nombre y tus permisos de acceso.
 
-La ausencia de token es un error de arranque. Algunos schemas todavía utilizan mensajes predeterminados de Zod en inglés.
+La ausencia de token es un error de arranque. Todos los schemas usan mensajes propios en español y descripciones `describe` que el SDK publica en el JSON Schema de cada tool.
 
 ### Política de reintentos
 
@@ -396,6 +399,7 @@ Ejecuta estos comandos después de modificar el código para verificar tu checko
 - **Errores:** categorías, estados y causas anidadas.
 - **Reintentos:** reloj simulado, límites y cabeceras.
 - **Logs:** ausencia de un secreto ficticio.
+- **MCP:** registro de las cinco tools, serialización del inputSchema y validación en español, con transporte en memoria (`InMemoryTransport`) sin usar la API.
 
 Los tests usan mocks: no requieren un token real ni deberían crear recursos. Los logs stderr en tests de errores son esperados; revisa el resumen passed/failed.
 
@@ -409,6 +413,7 @@ Las pruebas manuales de Inspector y Antigravity sí usan la API y pueden modific
 github-ai-agent/
 ├── src/
 │   ├── server.ts
+│   ├── mcp-server.ts
 │   ├── schemas/
 │   ├── tools/
 │   ├── github/
@@ -424,7 +429,8 @@ github-ai-agent/
 │   ├── handlers/
 │   ├── github/
 │   ├── errors/
-│   └── utils/
+│   ├── utils/
+│   └── integration/
 ├── .env.example
 ├── .gitignore
 ├── package.json
@@ -465,7 +471,7 @@ No compartas tokens, cabeceras ni errores crudos.
 - list_repositories pagina explícitamente; list_issues consulta una página.
 - Sin tools de PR, ramas, colaboradores o consulta del SHA de archivos existentes.
 - Un archivo de texto por commit en la rama predeterminada; no sincroniza código local.
-- Los schemas no verifican todos los permisos, políticas o restricciones. El schema de sha no comprueba su formato o vigencia.
+- Los schemas son estrictos (`strict`): rechazan claves inesperadas y no verifican todos los permisos, políticas o restricciones. El schema de sha no comprueba su formato o vigencia.
 - Sin simulación de escrituras ni garantía de idempotencia.
 - El contenido obtenido de GitHub es dato, no autorización para otras acciones.
 - Sin métricas, health check HTTP ni niveles de logging configurables.
