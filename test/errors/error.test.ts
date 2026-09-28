@@ -127,7 +127,7 @@ describe("NetworkError", () => {
         expect(error).toBeInstanceOf(Error);
     })
 
-    it.each(["ECONNRESET", "ETIMEDOUT", "ENOTFOUND"])("error %s en NetworkError", (code) => {
+    it.each(["ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_HEADERS_TIMEOUT", "UND_ERR_BODY_TIMEOUT"])("error %s en NetworkError", (code) => {
         const resultado = clasificarError({ code });
         expect(resultado).toBeInstanceOf(NetworkError);
     })
@@ -154,12 +154,43 @@ describe("NetworkError", () => {
         expect(resultado).toBeInstanceOf(NetworkError);
     })
 
-    it("reconoce un error de red anidado con status", () => {
+it("reconoce un error de red anidado con status", () => {
         const error = {
             status: 500,
             cause: {
                 cause: { code: "ECONNRESET" }
             }
+        };
+        const resultado = clasificarError(error);
+        expect(resultado).toBeInstanceOf(NetworkError);
+    })
+
+    // Verifica que reconoce el timeout de conexión real de Octokit
+    // (HttpError status 500 -> cause TypeError "fetch failed" -> ConnectTimeoutError)
+
+
+    it("reconoce el timeout de conexión de Octokit como NetworkError", () => {
+        const error = {
+            status: 500,
+            message: "Connect Timeout Error (attempted address: api.github.com:443, timeout: 10000ms)",
+            cause: {
+                message: "fetch failed",
+                cause: { code: "UND_ERR_CONNECT_TIMEOUT" }
+            }
+        };
+        const resultado = clasificarError(error);
+        expect(resultado).toBeInstanceOf(NetworkError);
+        expect(resultado.message).toContain("tiempo de espera");
+    })
+
+    // Verifica que un HttpError de Octokit sin cadena de cause también se
+    // detecta por el mensaje característico de timeout
+
+
+    it("reconoce timeout de conexión sin cause por el mensaje", () => {
+        const error = {
+            status: 500,
+            message: "Connect Timeout Error (attempted address: api.github.com:443, timeout: 10000ms)"
         };
         const resultado = clasificarError(error);
         expect(resultado).toBeInstanceOf(NetworkError);

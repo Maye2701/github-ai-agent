@@ -53,6 +53,14 @@ export function clasificarError(error: unknown, profundidad = 0): Error {
         }
     }
 
+    if (typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string" &&
+        /Connect Timeout|Timeout Error/i.test(error.message)) {
+        return new NetworkError("Se agotó el tiempo de espera al comunicarse con GitHub. Revisa tu conexión a Internet; si era una escritura, verifica primero que no se haya completado antes de repetirla.");
+    }
+
     if (typeof error === "object" && error !== null && "status" in error) {
         if (error.status === 401) {
             return new AuthenticationError("GitHub rechazó la autenticación. Revisa que GITHUB_TOKEN sea válido y no haya caducado.");
@@ -94,8 +102,11 @@ export function clasificarError(error: unknown, profundidad = 0): Error {
         if (error.code === "ECONNRESET") {
             return new NetworkError("Se interrumpió la conexión con GitHub. Comprueba el estado de la operación antes de intentarlo nuevamente.");
         }
-        if (error.code === "ETIMEDOUT") {
-            return new NetworkError("Se agotó el tiempo de espera al comunicarse con GitHub. Comprueba si la operación se completó antes de repetirla.");
+        if (error.code === "ETIMEDOUT" ||
+            error.code === "UND_ERR_CONNECT_TIMEOUT" ||
+            error.code === "UND_ERR_HEADERS_TIMEOUT" ||
+            error.code === "UND_ERR_BODY_TIMEOUT") {
+            return new NetworkError("Se agotó el tiempo de espera al comunicarse con GitHub. Revisa tu conexión a Internet; si era una escritura, verifica primero que no se haya completado antes de repetirla.");
         }
         if (error.code === "ENOTFOUND") {
             return new NetworkError("No se pudo encontrar el host de GitHub. Comprueba tu conexión a Internet o la dirección del servidor.");
